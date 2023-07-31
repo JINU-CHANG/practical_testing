@@ -10,7 +10,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 import sample.cafekiosk.spring.api.service.order.request.OrderCreateRequest;
+import sample.cafekiosk.spring.api.service.order.response.OrderRefundResponse;
 import sample.cafekiosk.spring.api.service.order.response.OrderResponse;
+import sample.cafekiosk.spring.domain.order.Order;
 import sample.cafekiosk.spring.domain.order.OrderProductRepository;
 import sample.cafekiosk.spring.domain.order.OrderRepository;
 import sample.cafekiosk.spring.domain.product.Product;
@@ -25,6 +27,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
+import static sample.cafekiosk.spring.domain.order.OrderStatus.CANCELED;
 import static sample.cafekiosk.spring.domain.product.ProductSellingStatus.SELLING;
 
 @ActiveProfiles("test")
@@ -156,6 +159,53 @@ class OrderServiceTest {
                 .containsExactlyInAnyOrder(
                         tuple("001", 0),
                         tuple("002", 1)
+                );
+    }
+
+    @DisplayName("주문 취소시 재고와 관련된 상품의 재고를 증가시킨다.")
+    @Test
+    void refundOrder() {
+        // given
+        Product product1 = createProduct(ProductType.BOTTLE, "001", 1000);
+        Product product2 = createProduct(ProductType.BAKERY, "002", 3000);
+        Product product3 = createProduct(ProductType.HANDMADE, "003", 5000);
+        productRepository.saveAll(List.of(product1, product2, product3));
+
+        Stock stock1 = Stock.create("001",2);
+        Stock stock2 = Stock.create("002",2);
+        stockRepository.saveAll(List.of(stock1,stock2));
+
+        OrderCreateRequest request = OrderCreateRequest.builder()
+                .productNumbers(List.of("001","001","002","003"))
+                .build();
+
+        LocalDateTime registeredDateTime = LocalDateTime.now();
+        OrderResponse orderResponse = orderService.createOrder(request, registeredDateTime); // 주문
+
+        // when
+        LocalDateTime cancellationDateTime = LocalDateTime.now();
+        OrderRefundResponse orderRefundResponse = orderService.refundOrder(orderResponse.getId(), cancellationDateTime); //주문 취소
+
+        // then
+        assertThat(orderRefundResponse.getId()).isEqualTo(orderResponse.getId());
+        assertThat(orderRefundResponse)
+                .extracting("registeredDateTime", "cancellationTime","orderStatus")
+                .contains(registeredDateTime, cancellationDateTime, CANCELED);
+        assertThat(orderRefundResponse.getRefundedProducts()).hasSize(4)
+                .extracting("productNumber","price")
+                .containsExactlyInAnyOrder(
+                        tuple("001", 1000),
+                        tuple("001", 1000),
+                        tuple("002", 3000),
+                        tuple("003", 5000)
+                );
+        List<Stock> stocks = stockRepository.findAll();
+
+        assertThat(stocks).hasSize(2)
+                .extracting("productNumber","quantity")
+                .containsExactlyInAnyOrder(
+                        tuple("001", 2),
+                        tuple("002", 2)
                 );
     }
 

@@ -5,6 +5,14 @@ Content-Type: application/json
 {
   "productNumbers" : [
     "001",
-    "002"
+    "001",
+    "002",
+    "003"
   ]
 }
+
+
+### 주문 취소
+PATCH localhost:8080/api/v2/orders/refund/1
+Content-Type: application/json
+

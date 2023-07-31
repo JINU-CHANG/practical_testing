@@ -29,6 +29,8 @@ public class Order extends BaseEntity {
 
     private LocalDateTime registeredDateTime;
 
+    private LocalDateTime cancellationDateTime;
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
     private List<OrderProduct> orderProducts = new ArrayList<>();
 
@@ -50,4 +52,8 @@ public class Order extends BaseEntity {
                 .sum();
     }
 
+    public void refund(LocalDateTime cancellationDateTime){
+        this.orderStatus = OrderStatus.CANCELED;
+        this.cancellationDateTime = cancellationDateTime;
+    }
 }
