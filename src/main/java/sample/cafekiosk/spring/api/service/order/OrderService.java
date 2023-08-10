@@ -44,7 +44,7 @@ public class OrderService {
 
         List<Product> products = findProductsBy(productNumbers);
 
-        deductStockQuantities(products);
+        updateStockQuantities(products, false);
 
         Order order = Order.create(products, registeredDateTime);
         Order savedOrder = orderRepository.save(order);
@@ -52,13 +52,13 @@ public class OrderService {
         return OrderResponse.of(savedOrder);
     }
 
+    // 스터디-코드 리팩토링
     public OrderRefundResponse refundOrder(Long orderId, LocalDateTime cancellationDateTime){
-
         Order order = orderRepository.findById(orderId).orElseThrow();
 
         List<Product> products = findProductsByOrder(order.getOrderProducts());
 
-        increaseStockQuantities(products);
+        updateStockQuantities(products, true);
 
         order.refund(cancellationDateTime);
         orderRepository.save(order);
@@ -66,52 +66,72 @@ public class OrderService {
         return OrderRefundResponse.of(order);
     }
 
+    // 하나의 메소드에 증가 감소 로직 둘다 있어도 괜찮은가 ?
+    private void updateStockQuantities(List<Product> products, boolean increase) {
+        List<String> productNumbers = extractProductNumbersWithStock(products);
 
-    private void increaseStockQuantities(List<Product> products) {
-        List<String> stockProductNumbers = extractStockProductNumbers(products);
+        Map<String, Long> productCountingMap = createCountingMapBy(productNumbers);
 
-        Map<String, Stock> stockMap = createStockMapBy(stockProductNumbers);
-        Map<String, Long> productCountingMap = createCountingMapBy(stockProductNumbers);
+        for(String productNumber : new HashSet<>(productNumbers)) {
+            Stock stock = stockRepository.findByProductNumber(productNumber);
+            int quantity = productCountingMap.get(productNumber).intValue();
 
-        for(String stockProductNumber : new HashSet<>(stockProductNumbers)) {
-            Stock stock = stockMap.get(stockProductNumber);
-            int quantity = productCountingMap.get(stockProductNumber).intValue();
-
-            stock.increaseQuantity(quantity);
-        }
-
-    }
-
-    private void  deductStockQuantities(List<Product> products) {
-        List<String> stockProductNumbers = extractStockProductNumbers(products);
-
-        Map<String, Stock> stockMap = createStockMapBy(stockProductNumbers);
-        Map<String, Long> productCountingMap = createCountingMapBy(stockProductNumbers);
-
-        for(String stockProductNumber : new HashSet<>(stockProductNumbers)) {
-            Stock stock = stockMap.get(stockProductNumber);
-            int quantity = productCountingMap.get(stockProductNumber).intValue();
-
-            if(stock.isQuantityLessThan(quantity)) {
-                throw new IllegalArgumentException("재고가 부족한 상품이 있습니다.");
+            if (increase) {
+                stock.increaseQuantity(quantity);
+            } else {
+                if (stock.isQuantityLessThan(quantity)) {
+                    throw new IllegalArgumentException("재고가 부족한 상품이 있습니다.");
+                }
+                stock.deductQuantity(quantity);
             }
-
-            stock.deductQuantity(quantity);
         }
     }
+
+//    private void increaseStockQuantities(List<Product> products) {
+//        List<String> stockProductNumbers = extractStockProductNumbers(products);
+//
+//        Map<String, Stock> stockMap = createStockMapBy(stockProductNumbers);
+//        Map<String, Long> productCountingMap = createCountingMapBy(stockProductNumbers);
+//
+//        for(String productNumber : stockProductNumbers) {
+//            Stock stock = stockRepository.findByProductNumber(productNumber);
+//            int quantity = productCountingMap.get(productNumber).intValue();
+//
+//            stock.increaseQuantity(quantity);
+//        }
+//    }
+//
+//    private void  deductStockQuantities(List<Product> products) {
+//        List<String> stockProductNumbers = extractStockProductNumbers(products);
+//
+//        Map<String, Stock> stockMap = createStockMapBy(stockProductNumbers);
+//        Map<String, Long> productCountingMap = createCountingMapBy(stockProductNumbers);
+//
+//        for(String stockProductNumber : new HashSet<>(stockProductNumbers)) {
+//            Stock stock = stockMap.get(stockProductNumber);
+//            int quantity = productCountingMap.get(stockProductNumber).intValue();
+//
+//            if(stock.isQuantityLessThan(quantity)) {
+//                throw new IllegalArgumentException("재고가 부족한 상품이 있습니다.");
+//            }
+//
+//            stock.deductQuantity(quantity);
+//        }
+//    }
 
     private static Map<String, Long> createCountingMapBy(List<String> stockProductNumbers) {
         return stockProductNumbers.stream()
                 .collect(Collectors.groupingBy(p->p, Collectors.counting()));
     }
 
-    private Map<String, Stock> createStockMapBy(List<String> stockProductNumbers) {
-        List<Stock> stocks = stockRepository.findAllByProductNumberIn(stockProductNumbers);
-        return stocks.stream()
-                .collect(Collectors.toMap(Stock::getProductNumber, s -> s));
-    }
+//    private Map<String, Stock> createStockMapBy(List<String> stockProductNumbers) {
+//        List<Stock> stocks = stockRepository.findAllByProductNumberIn(stockProductNumbers);
+//        return stocks.stream()
+//                .collect(Collectors.toMap(Stock::getProductNumber, s -> s));
+//    }
 
-    private static List<String> extractStockProductNumbers(List<Product> products) {
+    // 메서드명 변경(기존 : extractStockProductNumbers)
+    private static List<String> extractProductNumbersWithStock(List<Product> products) {
         return products.stream()
                 .filter(product -> ProductType.containsStockType(product.getType()))
                 .map(product -> product.getProductNumber())
