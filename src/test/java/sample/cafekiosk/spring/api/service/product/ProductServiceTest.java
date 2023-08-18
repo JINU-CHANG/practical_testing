@@ -55,7 +55,7 @@ class ProductServiceTest {
         // then
         assertThat(productResponse)
                 .extracting("productNumber","type", "name", "price")
-                .contains("004", HANDMADE, "카푸치노", 5000);
+                .contains("002", HANDMADE, "카푸치노", 5000);
 
         List<Product> products = productRepository.findAll();
         assertThat(products).hasSize(2)

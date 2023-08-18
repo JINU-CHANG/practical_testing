@@ -13,18 +13,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 public class StockTest {
 
-    @DisplayName("")
-    @TestFactory
-    Collection<DynamicTest> dynamicTest() {
-        return List.of(
-                DynamicTest.dynamicTest("", () -> {
-
-                        }),
-                DynamicTest.dynamicTest("", ()-> {
-
-                })
-        );
-    }
+//    @DisplayName("template")
+//    @TestFactory
+//    Collection<DynamicTest> dynamicTest() {
+//        return List.of(
+//                DynamicTest.dynamicTest("", () -> {
+//
+//                        }),
+//                DynamicTest.dynamicTest("", ()-> {
+//
+//                })
+//        );
+//    }
 
     @DisplayName("재고 차감 시나리오")
     @TestFactory

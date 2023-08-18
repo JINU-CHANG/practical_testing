@@ -30,7 +30,7 @@ class OrderTest {
         Order order = Order.create(products, registeredDateTime);
 
         // then
-        assertThat(order.getTotalPrice()).isEqualTo(registeredDateTime);
+        assertThat(order.getRegisteredDateTime()).isEqualTo(registeredDateTime);
     }
 
 
