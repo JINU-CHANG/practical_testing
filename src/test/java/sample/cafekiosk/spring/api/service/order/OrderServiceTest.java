@@ -9,6 +9,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
+import sample.cafekiosk.spring.IntegrationTestSupport;
 import sample.cafekiosk.spring.api.service.order.request.OrderCreateRequest;
 import sample.cafekiosk.spring.api.service.order.response.OrderRefundResponse;
 import sample.cafekiosk.spring.api.service.order.response.OrderResponse;
@@ -30,10 +31,8 @@ import static org.assertj.core.api.Assertions.tuple;
 import static sample.cafekiosk.spring.domain.order.OrderStatus.CANCELED;
 import static sample.cafekiosk.spring.domain.product.ProductSellingStatus.SELLING;
 
-@ActiveProfiles("test")
-//@Transactional
-@SpringBootTest
-class OrderServiceTest {
+
+class OrderServiceTest extends IntegrationTestSupport {
 
     @Autowired
     private ProductRepository productRepository;
